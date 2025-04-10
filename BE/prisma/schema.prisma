@@ -1,0 +1,90 @@
+// Define the connection to your PostgreSQL database using the DATABASE_URL environment variable.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Generate a type-safe Prisma Client.
+generator client {
+  provider = "prisma-client-js"
+}
+
+/*
+  User Model:
+  - id: Primary key.
+  - username, email: Unique details for each user.
+  - password: Store the hashed password.
+  - bookings: List of bookings made by the user.
+*/
+model User {
+  id       Int       @id @default(autoincrement())
+  username String    @unique
+  email    String    @unique
+  password String
+  bookings Booking[]
+}
+
+/*
+  Booking Model:
+  - id: Primary key.
+  - user: Relationship with the User model (each booking is made by a user).
+  - userId: Foreign key linking to a User.
+  - bookedAt: Timestamp for when the booking is created.
+  - bookedSeats: A list of seat records associated with this booking.
+*/
+model Booking {
+  id          Int          @id @default(autoincrement())
+  user        User         @relation(fields: [userId], references: [id])
+  userId      Int
+  bookedAt    DateTime     @default(now())
+  bookedSeats BookedSeat[]
+  status      BookingStatus @default(PENDING) // Status of the booking
+  
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+/*
+  Seat Model:
+  - id: Primary key.
+  - row: Which row the seat is in.
+  - number: The seat number within that row.
+  - createdAt: Timestamp of when the seat record was created.
+  
+  This model holds the details for each seat.
+*/
+model Seat {
+  id        Int      @id @default(autoincrement())
+  row       Int
+  number    Int
+  createdAt DateTime @default(now())
+  @@unique([row, number]) // Ensures that each seat in a row is unique
+  bookedSeats BookedSeat[] // Relationship with the BookedSeat model
+}
+
+/*
+  BookedSeat Model:
+  - id: Primary key.
+  - booking: Relationship with the Booking model.
+  - bookingId: Foreign key from Booking.
+  - seat: Relationship with the Seat model.
+  - seatId: Foreign key from Seat.
+  - bookedAt: Timestamp of when the seat was booked.
+  
+  This model links a booking to a specific seat. Once a seat appears in this table, 
+  it indicates that the seat is booked and should not be available for other bookings.
+*/
+model BookedSeat {
+  id        Int      @id @default(autoincrement())
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  bookingId Int
+  seat      Seat     @relation(fields: [seatId], references: [id])
+  seatId    Int
+  bookedAt  DateTime @default(now())
+  @@index([bookingId])
+  @@index([seatId])
+}
