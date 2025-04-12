@@ -1,9 +1,9 @@
 // controllers/authController.js
-import { PrismaClient } from '@prisma/client';
+import { db } from '../lib/prisma.js'; // Adjust the import path as necessary
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-const prisma = new PrismaClient();
+
 
 export const signup = async (req, res, next) => {
   try {
@@ -12,7 +12,7 @@ export const signup = async (req, res, next) => {
       return res.status(400).json({ message: 'All fields are required.' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
+    const user = await db.user.create({
       data: { username, email, password: hashedPassword },
     });
     res.status(201).json({ message: 'User created successfully', user });
@@ -24,7 +24,7 @@ export const signup = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await db.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
